@@ -5,87 +5,30 @@
             "Type": "AWS::EC2::VPC::Id",
             "Description": "VpcId of your existing Virtual Private Cloud (VPC)"
         },
-        "PrivateSubnets": {
+        "PrivateSubnet": {
             "Description": "subnets in which cluster will have instances",
-            "Type": "List<AWS::EC2::Subnet::Id>",
+            "Type": "AWS::EC2::Subnet::Id",
             "ConstraintDescription": "must be list of subnet ids"
         },
-        "PublicSubnets": {
+        "PublicSubnet": {
             "Description": "subnets in which cluster will have instances",
-            "Type": "List<AWS::EC2::Subnet::Id>",
+            "Type": "AWS::EC2::Subnet::Id",
             "ConstraintDescription": "must be list of subnet ids"
         },
         "KeyName": {
-            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance for application host.",
             "Type": "AWS::EC2::KeyPair::KeyName",
-            "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+            "ConstraintDescription": "must be the name of an existing EC2 KeyPair for application host.."
+        },
+        "BastionKeyName": {
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance for bastion host.",
+            "Type": "AWS::EC2::KeyPair::KeyName",
+            "ConstraintDescription": "must be the name of an existing EC2 KeyPair for bastion host."
         },
         "PrivateInstanceType": {
             "Description": "Private EC2 instance type",
             "Type": "String",
             "Default": "m4.xlarge",
-            "AllowedValues": [
-                "t1.micro",
-                "t2.nano",
-                "t2.micro",
-                "t2.small",
-                "t2.medium",
-                "t2.large",
-                "m1.small",
-                "m1.medium",
-                "m1.large",
-                "m1.xlarge",
-                "m2.xlarge",
-                "m2.2xlarge",
-                "m2.4xlarge",
-                "m3.medium",
-                "m3.large",
-                "m3.xlarge",
-                "m3.2xlarge",
-                "m4.large",
-                "m4.xlarge",
-                "m4.2xlarge",
-                "m4.4xlarge",
-                "m4.10xlarge",
-                "c1.medium",
-                "c1.xlarge",
-                "c3.large",
-                "c3.xlarge",
-                "c3.2xlarge",
-                "c3.4xlarge",
-                "c3.8xlarge",
-                "c4.large",
-                "c4.xlarge",
-                "c4.2xlarge",
-                "c4.4xlarge",
-                "c4.8xlarge",
-                "g2.2xlarge",
-                "g2.8xlarge",
-                "r3.large",
-                "r3.xlarge",
-                "r3.2xlarge",
-                "r3.4xlarge",
-                "r3.8xlarge",
-                "i2.xlarge",
-                "i2.2xlarge",
-                "i2.4xlarge",
-                "i2.8xlarge",
-                "d2.xlarge",
-                "d2.2xlarge",
-                "d2.4xlarge",
-                "d2.8xlarge",
-                "hi1.4xlarge",
-                "hs1.8xlarge",
-                "cr1.8xlarge",
-                "cc2.8xlarge",
-                "cg1.4xlarge"
-            ],
-            "ConstraintDescription": "must be a valid EC2 instance type."
-        },
-        "PublicInstanceType": {
-            "Description": "Public EC2 instance type",
-            "Type": "String",
-            "Default": "m3.large",
             "AllowedValues": [
                 "t1.micro",
                 "t2.nano",
@@ -209,7 +152,7 @@
                 },
                 "position": {
                     "x": 60,
-                    "y": 100
+                    "y": 90
                 },
                 "z": 1,
                 "embeds": []
@@ -256,10 +199,59 @@
                 },
                 "z": 1,
                 "embeds": []
+            },
+            "0034387c-0e7c-4612-8f5b-88beee5b0e45": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": -50,
+                    "y": 210
+                },
+                "z": 1,
+                "embeds": [],
+                "isassociatedwith": [
+                    "82b53ca5-481c-4705-a695-01dcb5ebd117"
+                ]
+            },
+            "82b53ca5-481c-4705-a695-01dcb5ebd117": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": -50,
+                    "y": 90
+                },
+                "z": 1,
+                "embeds": []
             }
         }
     },
     "Resources": {
+        "BASTIONSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "BastionSG",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "82b53ca5-481c-4705-a695-01dcb5ebd117"
+                }
+            }
+        },
         "ELBSG": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
@@ -269,6 +261,18 @@
                         "IpProtocol": "tcp",
                         "FromPort": "80",
                         "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8123",
+                        "ToPort": "8123",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "5601",
+                        "ToPort": "5601",
                         "CidrIp": "0.0.0.0/0"
                     }
                 ],
@@ -293,13 +297,33 @@
                         "IpProtocol": "tcp",
                         "FromPort": "80",
                         "ToPort": "80",
-                       "SourceSecurityGroupId" : {"Ref":"ELBSG"}
+                        "SourceSecurityGroupId": {
+                            "Ref": "ELBSG"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "5601",
+                        "ToPort": "5601",
+                        "SourceSecurityGroupId": {
+                            "Ref": "ELBSG"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8123",
+                        "ToPort": "8123",
+                        "SourceSecurityGroupId": {
+                            "Ref": "ELBSG"
+                        }
                     },
                     {
                         "IpProtocol": "tcp",
                         "FromPort": "22",
                         "ToPort": "22",
-                        "CidrIp": "0.0.0.0/0"
+                        "SourceSecurityGroupId": {
+                            "Ref": "BASTIONSG"
+                        }
                     }
                 ],
                 "GroupDescription": "PrivateSG"
@@ -331,10 +355,13 @@
                             "",
                             [
                                 "#!/bin/bash\n",
-                                "yum update -y\n",
-                                "yum install -y docker\n",
+                                "sleep 10\n",
                                 "sudo curl -L https://github.com/docker/compose/releases/download/1.21.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose\n",
-                                "sudo chmod +x /usr/local/bin/docker-compose\n"
+                                "sudo chmod +x /usr/local/bin/docker-compose\n",
+                                "sleep 50\n",
+                                "sudo yum update -y\n",
+                                "sudo yum install -y docker\n",
+                                "sudo service docker start\n"
                             ]
                         ]
                     }
@@ -368,11 +395,20 @@
         "ElasticLoadBalancer": {
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
-                
                 "Listeners": [
                     {
                         "LoadBalancerPort": "80",
                         "InstancePort": "80",
+                        "Protocol": "HTTP"
+                    },
+                    {
+                        "LoadBalancerPort": "8123",
+                        "InstancePort": "8123",
+                        "Protocol": "HTTP"
+                    },
+                    {
+                        "LoadBalancerPort": "5601",
+                        "InstancePort": "5601",
                         "Protocol": "HTTP"
                     }
                 ],
@@ -388,11 +424,11 @@
                         "Ref": "ELBSG"
                     }
                 ],
-                "Subnets": 
-                    {
-                        "Ref": "PublicSubnets"
-                    }
-                
+                "Subnets": [
+                  {
+                    "Ref": "PublicSubnet"
+                  }
+                ]
             },
             "Metadata": {
                 "AWS::CloudFormation::Designer": {
@@ -409,9 +445,9 @@
                 "DesiredCapacity": 1,
                 "MaxSize": 3,
                 "MinSize": 1,
-                "VPCZoneIdentifier": {
-                    "Ref": "PrivateSubnets"
-                },
+                "VPCZoneIdentifier": [{
+                    "Ref": "PrivateSubnet"
+                }],
                 "LoadBalancerNames": [
                     {
                         "Ref": "ElasticLoadBalancer"
@@ -421,6 +457,41 @@
             "Metadata": {
                 "AWS::CloudFormation::Designer": {
                     "id": "ae9e3b32-49d6-4219-a7df-a32bebdf4c27"
+                }
+            }
+        },
+        "Bastion": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSRegion2AMI",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        "64"
+                    ]
+                },
+                "InstanceType": "t2.micro",
+                "KeyName": {
+                    "Ref": "BastionKeyName"
+                },
+                "SecurityGroupIds" : [ 
+                    {
+                        "Ref": "BASTIONSG"
+                    }
+                ],
+                "SubnetId": {
+                    "Ref": "PublicSubnet"
+                },
+                "Tags" : [ {
+                          "Key" : "Name",
+                          "Value" : "Bastion CloudFormation"
+}]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "0034387c-0e7c-4612-8f5b-88beee5b0e45"
                 }
             }
         }
